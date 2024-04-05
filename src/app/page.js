@@ -12,13 +12,20 @@ import {
   Chip,
   Box,
   Drawer,
+  SwipeableDrawer,
   MenuList,
+  List,
+  ListItem,
+  Divider,
+  ListItemButton,
+  Modal,
 } from '@mui/material';
-import { FaBars, FaCheck, FaEllipsisH } from 'react-icons/fa';
+import { FaBars, FaCheck, FaEllipsisH, FaTrash } from 'react-icons/fa';
+import { FaPenToSquare } from 'react-icons/fa6';
 import RootTheme from './theme';
 import dateToStr from './dateUtil';
 
-function useTodosState() {
+function useTodosStatus() {
   const [todos, setTodos] = React.useState([]);
   const lastTodoIdRef = React.useRef(0);
 
@@ -134,28 +141,92 @@ const TodoListItem = ({ todo, index, openDrawer }) => {
   );
 };
 
-const TodoList = ({ todosState }) => {
-  const [optionDrawerTodoId, setOptionDrawerTodoId] = React.useState(null);
+// 해당 todo option에 대한 drawer 열기, 닫기
+function useTodoOptionDrawerStatus() {
+  const [todoId, setTodoId] = React.useState(null);
 
-  const drawerOpened = React.useMemo(() => optionDrawerTodoId !== null, [optionDrawerTodoId]);
+  const opened = React.useMemo(() => todoId !== null, [todoId]);
 
-  const openDrawer = (id) => setOptionDrawerTodoId(id);
-  const closeDrawer = () => setOptionDrawerTodoId(null);
+  const open = (id) => setTodoId(id);
+  const close = () => setTodoId(null);
+
+  return {
+    todoId,
+    open,
+    close,
+    opened,
+  };
+}
+
+// modal 열기, 닫기
+function useEditTodoModalStatus() {
+  const [opened, setOpened] = React.useState(false);
+
+  const open = () => {
+    setOpened(true);
+  };
+
+  const close = () => {
+    setOpened(false);
+  };
+
+  return {
+    opened,
+    open,
+    close,
+  };
+}
+
+function TodoOptionDrawer({ status }) {
+  const editTodoModalStatus = useEditTodoModalStatus();
 
   return (
     <>
-      <Drawer anchor="bottom" open={drawerOpened} onClose={closeDrawer}>
-        <div className="tw-p-[30px] tw-flex tw-gap-x-[5px]">
-          {optionDrawerTodoId}번 todo에 대한 옵션 Drawer
-          <div>수정</div>
-          <div>삭제</div>
-        </div>
-      </Drawer>
-      할 일 갯수 : {todosState.todos.length}
+      <SwipeableDrawer anchor="top" open={status.opened} onClose={status.close} onOpen={() => {}}>
+        <List>
+          <ListItem className="tw-flex tw-gap-2 tw-p-[15px]">
+            <span className="tw-text-[--mui-color-primary-main]">{status.todoId}번 </span>
+            <span>Your Todo</span>
+          </ListItem>
+          <Divider className="tw-my-[5px]" />
+          <ListItemButton
+            onClick={editTodoModalStatus.open}
+            className="tw-p-[15px_20px] tw-flex tw-gap-2 tw-items-center">
+            <span>수정</span>
+            <FaPenToSquare className="block tw-mt-[-5px]" />
+          </ListItemButton>
+          <ListItemButton className="tw-p-[15px_20px] tw-flex tw-gap-2 tw-items-center">
+            <span>삭제</span>
+            <FaTrash className="block tw-mt-[-5px]" />
+          </ListItemButton>
+        </List>
+      </SwipeableDrawer>
+      <Modal
+        open={editTodoModalStatus.opened}
+        onClose={editTodoModalStatus.close}
+        className="tw-flex tw-justify-center tw-items-center">
+        <div className="tw-bg-white tw-p-10 tw-rounded-[20px]">안녕</div>
+      </Modal>
+    </>
+  );
+}
+
+const TodoList = ({ todosState }) => {
+  const todoOptionDrawerStatus = useTodoOptionDrawerStatus();
+
+  return (
+    <>
+      <TodoOptionDrawer status={todoOptionDrawerStatus} />
       <nav>
+        할 일 갯수 : {todosState.todos.length}
         <ul>
           {todosState.todos.map((todo, index) => (
-            <TodoListItem key={todo.id} todo={todo} index={index} openDrawer={openDrawer} />
+            <TodoListItem
+              key={todo.id}
+              todo={todo}
+              index={index}
+              openDrawer={todoOptionDrawerStatus.open}
+            />
           ))}
         </ul>
       </nav>
@@ -164,7 +235,7 @@ const TodoList = ({ todosState }) => {
 };
 
 function App() {
-  const todosState = useTodosState();
+  const todosState = useTodosStatus();
 
   React.useEffect(() => {
     todosState.addTodo('스쿼트\n런지');
